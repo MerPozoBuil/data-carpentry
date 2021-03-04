@@ -1,5 +1,6 @@
 import argparse
 
+import pdb
 import xarray as xr
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
@@ -16,6 +17,8 @@ def convert_pr_units(darray):
     
     """
     
+    assert darray.units == 'kg m-2 s-1', "Program assumes the input units are kg m-2 s-1"
+
     darray.data = darray.data * 86400
     darray.attrs['units'] = 'mm/day'
    
@@ -65,6 +68,7 @@ def apply_mask(darray, mask_file, region):
     """
     dset = xr.open_dataset(mask_file)
     
+    assert region in ['land','ocean'], """Valid regions are 'land' or 'oceean'"""
     if region == 'land':
         masked_darray = darray.where(dset['sftlf'].data < 50)
     else:
