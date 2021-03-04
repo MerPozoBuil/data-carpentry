@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cmocean
 
+# A random comment
 
 def convert_pr_units(darray):
     """Convert kg m-2 s-1 to mm day-1.
@@ -53,6 +54,23 @@ def create_plot(clim, model, season, gridlines=False, levels=None):
     title = f'{model} precipitation climatology ({season})'
     plt.title(title)
 
+def apply_mask(darray, mask_file, region):
+    """Mask ocean or land using the mask_file sftl file.
+    
+    Args:
+     darray (xarray.DataArray): data to apply the mask
+     mask_file (str): Land Surface fraction file
+     region (str): Region to mask
+     
+    """
+    dset = xr.open_dataset(mask_file)
+    
+    if region == 'land':
+        masked_darray = darray.where(dset['sftlf'].data < 50)
+    else:
+        masked_darray = darray.where(dset['sftlf'].data > 50)
+        
+    return masked_darray
 
 def main(inargs):
     """Run the program."""
@@ -61,6 +79,10 @@ def main(inargs):
     
     clim = dset['pr'].groupby('time.season').mean('time', keep_attrs=True)
     clim = convert_pr_units(clim)
+
+    if inargs.mask:
+        mask_file, region = inargs.mask
+        clim = apply_mask(clim, mask_file, region) 
 
     create_plot(clim, dset.attrs['source_id'], inargs.season,
                 gridlines=inargs.gridlines, levels=inargs.cbar_levels)
@@ -79,6 +101,9 @@ if __name__ == '__main__':
                         help="Include gridlines on the plot")
     parser.add_argument("--cbar_levels", type=float, nargs='*', default=None,
                         help='list of levels / tick marks to appear on the colorbar')
+    parser.add_argument("--mask", type=str, nargs=2,
+                    metavar=('MASK_FILE', 'REGION'), default=None,
+                    help="""Provide sftlf file and realm to mask ('land' or 'ocean')""")    
 
     args = parser.parse_args()
    
